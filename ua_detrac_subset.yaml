@@ -1,8 +1,0 @@
-path: .
-train: C:/Users/bianc/Vision/tpf/ua_detrac_subset_train.txt
-val: C:/Users/bianc/Vision/tpf/ua_detrac_subset_val.txt
-names:
-  0: car
-  1: bus
-  2: van
-  3: others
