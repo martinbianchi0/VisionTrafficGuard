@@ -13,70 +13,120 @@ def preview_sequence_grid(
     n_rows: int = 2,
     n_cols: int = 3,
     random_sample: bool = False,
-) -> None:
+    show_boxes: bool = False,
+    labels_root: Optional[Path] = None,
+):
     """
-    Muestra un grid de imágenes crudas (sin pasar por YOLO) de una secuencia.
+    Muestra un grid de imágenes (y opcionalmente sus bounding boxes YOLO).
 
     Parámetros:
-      - image_paths: lista de Paths de imágenes (por ejemplo subset['image_paths']).
-      - sequence_filter: si no es None, filtra por secuencia, ej. 'MVI_20011'.
-      - n_rows: cantidad de filas en el grid.
-      - n_cols: cantidad de columnas en el grid.
-      - random_sample: si True, elige imágenes al azar; si False, toma las primeras K ordenadas.
-
-    Muestra:
-      - Una figura matplotlib con n_rows * n_cols imágenes como máximo.
+      - image_paths: lista de Paths de imágenes.
+      - sequence_filter: filtra por secuencia ej. 'MVI_20011'.
+      - n_rows, n_cols: tamaño del grid.
+      - random_sample: si True, selecciona imágenes al azar.
+      - show_boxes: si True, dibuja los bboxes del label correspondiente.
+      - labels_root: carpeta raíz donde están los labels (ej: DETRAC_ROOT/labels/train).
     """
+
     if not image_paths:
         print("La lista de imágenes está vacía.")
         return
 
-    # Filtrar por secuencia si se pide (por nombre de archivo)
+    # Filtrar por secuencia
     filtered = image_paths
     if sequence_filter is not None:
-        filtered = [p for p in image_paths if sequence_filter in p.name]
+        filtered = [p for p in filtered if sequence_filter in p.name]
 
     if not filtered:
-        print(f"No se encontraron imágenes que contengan '{sequence_filter}' en el nombre.")
+        print(f"No se encontraron imágenes que contengan '{sequence_filter}'.")
         return
 
-    # Ordenar por nombre para que queden en orden temporal
+    # Orden temporal
     filtered = sorted(filtered, key=lambda p: p.name)
 
-    # Cantidad máxima a mostrar
+    # Selección
     max_imgs = n_rows * n_cols
-
     if random_sample and len(filtered) > max_imgs:
-        # Muestreo aleatorio sin reemplazo
         import random
         filtered = random.sample(filtered, max_imgs)
     else:
-        # Tomar primeras K (o todas si hay menos)
         filtered = filtered[:max_imgs]
 
     # Crear figura
     fig, axes = plt.subplots(n_rows, n_cols, figsize=(4 * n_cols, 3 * n_rows))
-    axes = np.array(axes).reshape(n_rows, n_cols)  # por si matplotlib devuelve 1D
+    axes = np.array(axes).reshape(n_rows, n_cols)
 
     for idx, img_path in enumerate(filtered):
         row = idx // n_cols
         col = idx % n_cols
-
         ax = axes[row, col]
 
+        # Cargar imagen
         img_bgr = cv2.imread(str(img_path))
         if img_bgr is None:
-            ax.set_title(f"Error leyendo\n{img_path.name}", fontsize=8)
+            ax.set_title(f"Error leyendo {img_path.name}", fontsize=8)
             ax.axis("off")
             continue
 
         img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
 
+        # Dibujar imagen
         ax.imshow(img_rgb)
-        ax.set_title(img_path.name, fontsize=8)
+        ax.set_title(img_path.name, fontsize=7)
         ax.axis("off")
 
-    # Celdas sobrantes (si hay menos imágenes que slots en el grid)
+        # Si no hay que dibujar bboxes → skip
+        if not show_boxes or labels_root is None:
+            continue
+
+        # Buscar label correspondiente
+        label_path = labels_root / (img_path.stem + ".txt")
+        if not label_path.exists():
+            continue
+
+        try:
+            with open(label_path, "r") as f:
+                lines = f.readlines()
+        except:
+            continue
+
+        h, w, _ = img_rgb.shape
+
+        # Dibujar bboxes
+        for line in lines:
+            parts = line.strip().split()
+            if len(parts) != 5:
+                continue
+
+            cls, xc, yc, bw, bh = map(float, parts)
+
+            # Convertir YOLO → pixeles
+            x1 = int((xc - bw/2) * w)
+            y1 = int((yc - bh/2) * h)
+            x2 = int((xc + bw/2) * w)
+            y2 = int((yc + bh/2) * h)
+
+            rect = plt.Rectangle(
+                (x1, y1),
+                x2 - x1,
+                y2 - y1,
+                fill=False,
+                edgecolor="lime",
+                linewidth=1.2,
+            )
+            ax.add_patch(rect)
+
+            # Mostrar clase encima
+            ax.text(
+                x1,
+                y1 - 2,
+                f"{int(cls)}",
+                color="lime",
+                fontsize=7,
+                bbox=dict(facecolor="black", alpha=0.3, pad=1),
+            )
+
+    # Apagar celdas vacías
     total_slots = n_rows * n_cols
     for empty_idx in range(len(filtered), total_slots):
         row = empty_idx // n_cols
@@ -85,6 +135,7 @@ def preview_sequence_grid(
 
     plt.tight_layout()
     plt.show()
+
 
 def show_preproc_panel(img_path, preprocs_dict, title_prefix=""):
     """

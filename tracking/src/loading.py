@@ -1,9 +1,7 @@
 from pathlib import Path
 import random
 from typing import List, Dict, Sequence
-
 from ultralytics import YOLO
-
 
 def load_dataset_subset(
     base_dir: str | Path,

@@ -57,6 +57,12 @@ EXPERIMENTS: Dict[str, Dict[str, Any]] = {
         "yaml_path": str(CONFIGS_DIR / "detrac_mixed_smooth_unsharp.yaml"),
         "run_name": None,
     },
+    "weather": {
+        "mixed_dir": str(PROJECT_ROOT / "DETRAC_weather"),
+        "archive_dir": str(PROJECT_ROOT / "archive"),
+        "yaml_path": str(CONFIGS_DIR / "detrac_mixed_weather.yaml"),
+        "run_name": None,
+    }
 }
 
 
@@ -149,7 +155,7 @@ def train_all_experiments(
             batch=batch,
             project=project,
             name=run_name,
-            device=0,
+            device='cpu',
         )
 
         results[name] = train_result

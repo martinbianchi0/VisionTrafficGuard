@@ -1,0 +1,8 @@
+path: .
+train: /Users/fedegutman/Desktop/VisionTrafficGuard/tracking/configs/detrac_mixed_raw_train.txt
+val: /Users/fedegutman/Desktop/VisionTrafficGuard/tracking/configs/detrac_mixed_raw_val.txt
+names:
+  0: others
+  1: car
+  2: van
+  3: bus

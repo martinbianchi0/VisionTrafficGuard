@@ -5,7 +5,6 @@ import cv2
 import numpy as np
 import random
 
-
 def apply_dirty_effect(img_bgr: np.ndarray, strength: float = 0.6) -> np.ndarray:
     """
     Aplica un efecto tipo arena/polvo a una imagen BGR.
@@ -113,3 +112,150 @@ def save_dirty_copies(
 
     print(f"Generadas {len(dirty_paths)} imágenes sucias en: {out_dir}")
     return dirty_paths
+
+def apply_fog(img, strength=0.3):
+    '''
+    Aplica un efecto de niebla a una imagen BGR.
+    
+    Parámetros:
+      - img: Imagen original en BGR.
+      - strength: Intensidad de la niebla (0.0 a 1.0).
+
+    Returns:
+      - Imagen BGR modificada con niebla.
+    '''
+    strength = np.clip(strength, 0.0, 1.0)
+    h, w = img.shape[:2]
+    fog = np.full((h, w, 3), 255, dtype=np.float32)  # capa blanca
+    
+    noise = cv2.GaussianBlur(
+        np.random.normal(loc=1.0, scale=0.5, size=(h, w)).astype(np.float32),
+        (51, 51), 0
+    )
+    if noise.ndim == 2:
+        noise = noise[..., None] # (H, W, 1)
+
+    fog_layer = (fog * noise).clip(0, 255)
+
+    alpha = 0.3 + 0.7 * strength
+    out = cv2.addWeighted(img.astype(np.float32), 1 - alpha, fog_layer, alpha, 0)
+    return out.astype(np.uint8)
+
+def apply_rain(img, strength=0.5):
+    '''
+    Aplica un efecto de lluvia a una imagen BGR.
+
+    Parámetros:
+      - img: Imagen original en BGR.
+      - strength: Intensidad de la lluvia (0.0 a 1.0).
+
+    Returns:
+      - Imagen BGR modificada con lluvia.
+    '''
+    strength = np.clip(strength, 0.0, 1.0)
+    h, w = img.shape[:2]
+
+    rain_layer = np.zeros((h, w), dtype=np.float32)
+
+    # cantidad de gotas
+    drops = int(800 * strength)
+
+    for _ in range(drops):
+        x = np.random.randint(0, w)
+        y = np.random.randint(0, h)
+        length = np.random.randint(10, 20)
+        thickness = 1
+
+        cv2.line(
+            rain_layer,
+            (x, y),
+            (x + np.random.randint(-2, 2), y + length),
+            color=1.0,
+            thickness=thickness
+        )
+
+    # motion blur para que parezca lluvia real
+    ksize = int(5 + strength * 10)
+    rain_layer = cv2.blur(rain_layer, (ksize, 1))
+
+    rain_layer = np.dstack([rain_layer]*3) * 255
+
+    alpha = 0.2 + 0.3 * strength
+    out = cv2.addWeighted(img.astype(np.float32), 1.0, rain_layer.astype(np.float32), alpha, 0)
+    return out.astype(np.uint8)
+
+
+def apply_snow(img, strength=0.5):
+    '''
+    Aplica un efecto de nieve a una imagen BGR.
+
+    Parámetros:
+      - img: Imagen original en BGR.
+      - strength: Intensidad de la nieve (0.0 a 1.0).
+
+    Returns:
+      - Imagen BGR modificada con nieve.
+    '''
+    strength = np.clip(strength, 0.0, 1.0)
+    h, w = img.shape[:2]
+
+    snow = np.random.normal(loc=200, scale=55, size=(h, w)).astype(np.float32)
+    snow = cv2.GaussianBlur(snow, (5, 5), 0)
+    snow = np.clip(snow, 180, 255)
+
+    snow = np.dstack([snow]*3)
+
+    alpha = 0.1 + 0.4 * strength
+    out = cv2.addWeighted(img.astype(np.float32), 1 - alpha, snow, alpha, 0)
+    return out.astype(np.uint8)
+
+def apply_night(img, strength=0.5):
+    '''
+    Aplica un efecto de noche a una imagen BGR.
+
+    Parámetros:
+      - img: Imagen original en BGR.
+      - strength: Intensidad del efecto noche (0.0 a 1.0).
+
+    Returns:
+      - Imagen BGR modificada con efecto noche.
+    '''
+    strength = np.clip(strength, 0.0, 1.0)
+
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV).astype(np.float32)
+    h, s, v = cv2.split(hsv)
+
+    # oscurecer
+    v *= (0.4 + 0.6 * (1 - strength))
+    v = np.clip(v, 0, 255)
+
+    hsv_dark = cv2.merge([h, s, v]).astype(np.uint8)
+    out = cv2.cvtColor(hsv_dark, cv2.COLOR_HSV2BGR)
+
+    # ruido para simular ISO alto
+    noise = (np.random.randn(*img.shape) * (10 + 40 * strength)).astype(np.int16)
+    out = np.clip(out.astype(np.int16) + noise, 0, 255).astype(np.uint8)
+
+    return out
+
+def apply_random_weather(img):
+    '''
+    Aplica un efecto climático aleatorio a una imagen BGR.
+
+    Parámetros:
+      - img: Imagen original en BGR.
+      
+    Returns:
+      - Imagen BGR modificada con un efecto climático aleatorio.
+    '''
+    r = random.random()
+
+    if r < 0.25:
+        return apply_fog(img, strength=random.uniform(0.3, 0.8)), 'FOG'
+    elif r < 0.50:
+        return apply_rain(img, strength=random.uniform(0.3, 0.8)), 'RAIN'
+    elif r < 0.75:
+        return apply_snow(img, strength=random.uniform(0.2, 0.7)), 'SNOW'
+    else:
+        return apply_night(img, strength=random.uniform(0.3, 0.7)), 'NIGHT'
+
