@@ -1,8 +1,0 @@
-path: .
-train: /Users/fedegutman/Desktop/VisionTrafficGuard/tracking/configs/detrac_mixed_weather_train.txt
-val: /Users/fedegutman/Desktop/VisionTrafficGuard/tracking/configs/detrac_mixed_weather_val.txt
-names:
-  0: others
-  1: car
-  2: van
-  3: bus
