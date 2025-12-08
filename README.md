@@ -1,39 +1,50 @@
 # VisionTrafficGuard
 
-VisionTrafficGuard es un sistema integral de fiscalización de tránsito basado únicamente en video, capaz de estimar velocidades vehiculares, leer patentes y clasificar infracciones a partir de una cámara fija.  
+Sistema de fiscalización de tránsito **basado solo en video** que, a partir de una cámara fija cenital, es capaz de:
 
-El pipeline combina:
+- Detectar y trackear vehículos (YOLOv11-small + ByteTrack).
+- Proyectar las trayectorias al plano real y estimar su **velocidad**.
+- Leer la **patente** de cada vehículo (FastPlate-OCR + votación temporal).
+- Clasificar automáticamente **infracciones** según el límite de velocidad.
 
-- Detección y seguimiento de vehículos con **YOLOv11-small** + **ByteTrack**.
-- Estimación de velocidad en el plano real usando **homografías por carril** calibradas con radar y variantes de auto-calibración con **AnyCalib**.
-- Detección y lectura de patentes con un detector basado en bordes verticales y **FastPlate-OCR** con votación temporal por vehículo.
-- Clasificación automática de infracciones de velocidad a partir de las velocidades estimadas.
+El proyecto se apoya en dos datasets principales:
 
-El objetivo es acercarse a la precisión de un radar usando sólo cámaras ya instaladas en la infraestructura urbana.
+- **UA-DETRAC**: para entrenar y validar el detector de vehículos.
+- **Vehicle-DSM**: para estimación de velocidad con radar como *ground truth* y lectura de patentes.
 
 ---
 
 ## Estructura del repositorio
 
-- `speed/`  
-  Módulo de **estimación de velocidad**:
-  - Entrenamiento y *fine-tuning* de YOLOv11 con UA-DETRAC y Vehicle-DSM.
-  - Proyección al plano métrico (homografías por carril, modelos AnyCalib).
-  - Regresión distancia–tiempo y calibración con radar por carril.
-  - Cálculo de métricas y generación de figuras.
-
-- `patentes/`  
-  Módulo de **detección y lectura de patentes**:
-  - Detector basado en bordes verticales y fusión temporal por vehículo.
-  - Experimentos con Tesseract, EasyOCR y FastPlate-OCR.
-  - Votación temporal y métricas sobre los *crops* de patentes.
+La lógica del trabajo está organizada por módulos:
 
 - `tracking/`  
-  Módulo de **detección + tracking**:
-  - Aplicación de YOLOv11-small sobre los videos del escenario.
-  - Seguimiento temporal con ByteTrack para generar *tracks* por vehículo.
+  Entrenamiento y evaluación del detector de vehículos **YOLOv11-small** y el *tracking* con **ByteTrack**.  
+  Desde acá salen los pesos y *pipelines* de detección que se usan en los módulos de velocidad y patentes.
 
-Cada carpeta contiene el código y los *notebooks* necesarios para reproducir los experimentos descritos en el informe.
+- `speed/`  
+  Estimación de velocidad mediante **homografías por carril** calibradas con radar.  
+  Incluye:
+  - Proyección de las posiciones de los vehículos al plano métrico usando trampas de velocidad por carril.
+  - Regresión distancia–tiempo para obtener la velocidad promedio dentro de la trampa.
+  - Calibración por carril con radar (factor de escala \(k_\ell\)).
+
+- `speed_anycalib_bbox/`  
+  Variante de estimación de velocidad basada en **AnyCalib**, usando un *prior* de escala ligado al **ancho de la *bounding box*** del vehículo (Modelo A).  
+  Sirve como baseline de calibración totalmente automática sin mediciones físicas explícitas.
+
+- `speed_anycalib_prior/`  
+  Segunda variante con AnyCalib (Modelo B): usa un **segmento real de 4.4 m** alineado con la dirección del movimiento como referencia de escala.  
+  Esta versión logra errores de velocidad más estables (MAE ≈ 3–4 km/h) sin necesidad de radar directo.
+
+- `patentes/`  
+  Módulo completo de **detección y lectura de patentes**:
+  - Detector basado en **bordes verticales** + filtrado morfológico y fusión temporal por vehículo.
+  - Experimentos de OCR con **Tesseract**, **EasyOCR** y **FastPlate-OCR**.
+  - Comparación de distintas combinaciones de preprocesamiento (morpho, bilateral + umbral adaptativo, CLAHE, etc.).
+  - Pipeline final con **FastPlate-OCR sin preprocesamiento**, más la votación temporal para consolidar una única patente por vehículo.
+
+Cada carpeta contiene *notebooks* y/o scripts que implementan el flujo correspondiente (entrenamiento, evaluación y generación de figuras usadas en el informe).
 
 ---
 
@@ -42,9 +53,9 @@ Cada carpeta contiene el código y los *notebooks* necesarios para reproducir lo
 No se debe subir el entorno virtual al repositorio.  
 Para reproducir el proyecto, cada usuario debe crear su propio entorno localmente.
 
-### 1. Crear un entorno virtual
+### Crear un entorno virtual
 
-**En Linux / Mac:**
+En **Linux/Mac**:
 
 ```bash
 python3 -m venv venv
