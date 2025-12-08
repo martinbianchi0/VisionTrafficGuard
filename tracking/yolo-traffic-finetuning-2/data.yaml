@@ -1,0 +1,14 @@
+names:
+- car
+- motorcycle
+- others
+nc: 3
+roboflow:
+  license: CC BY 4.0
+  project: yolo-traffic-finetuning
+  url: https://universe.roboflow.com/computer-vision-udesa/yolo-traffic-finetuning/dataset/2
+  version: 2
+  workspace: computer-vision-udesa
+test: ../test/images
+train: ../train/images
+val: ../valid/images

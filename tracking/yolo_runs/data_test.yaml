@@ -1,0 +1,10 @@
+path: /Users/fedegutman/Desktop/tracking/DETRAC_SPLIT
+train: images/train
+val: images/test
+test: images/test
+names:
+  0: others
+  1: car
+  2: van
+  3: bus
+nc: 4

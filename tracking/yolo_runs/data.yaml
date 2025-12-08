@@ -1,0 +1,9 @@
+path: /Users/fedegutman/Desktop/tracking/yolo_runs
+train: /Users/fedegutman/Desktop/tracking/DETRAC_SPLIT/images/train
+val: /Users/fedegutman/Desktop/tracking/DETRAC_SPLIT/images/test
+nc: 4
+names:
+  0: others
+  1: car
+  2: van
+  3: bus
