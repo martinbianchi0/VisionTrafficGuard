@@ -14,6 +14,22 @@ El proyecto se apoya en dos datasets principales:
 
 ---
 
+## Resultados
+
+Cada número va con la condición en la que se midió. **La variante más precisa y la más fácil de desplegar no son la misma**, y eso es parte del resultado.
+
+| Componente | Métrica | Medida sobre |
+|---|---|---|
+| **Velocidad — homografías por carril + calibración con radar** | **MAE 0.77 km/h** | 64 vehículos, ground truth de bucles inductivos. La más precisa; exige calibración física en el lugar |
+| **Velocidad — AnyCalib, Modelo B** (segmento de referencia de 4,4 m) | **MAE 3.60 km/h** | 387 vehículos, conjunto de test. Sin radar ni mediciones físicas |
+| Detector de vehículos (YOLOv11-small fine-tuneado) | precisión **0.952** · recall **0.979** · mAP@50-95 **0.896** | Vehicle-DSM re-etiquetado, splits por video para evitar fuga entre frames |
+| Clasificador de infracciones | precisión 0.973 · recall 0.923 · **F1 0.947** · exactitud 0.956 | matriz de confusión en el informe |
+| OCR de patentes (FastPlate-OCR) | 100 % de lecturas no vacías, **93 % con forma de patente válida** — contra 51.3 % de EasyOCR y 40 % de Tesseract | benchmark de 3 motores × 3 preprocesamientos, más votación temporal por track |
+
+**Sobre el 93 %:** es la proporción de lecturas cuyo formato corresponde a una patente válida. **No es accuracy de lectura exacta** — no se midió carácter por carácter contra el ground truth.
+
+El detalle está en `Informe.pdf` y en `Poster.pdf`.
+
 ## Estructura del repositorio
 
 La lógica del trabajo está organizada por módulos:
@@ -35,7 +51,7 @@ La lógica del trabajo está organizada por módulos:
 
 - `speed_anycalib_prior/`  
   Segunda variante con AnyCalib (Modelo B): usa un **segmento real de 4.4 m** alineado con la dirección del movimiento como referencia de escala.  
-  Esta versión logra errores de velocidad más estables (MAE ≈ 3–4 km/h) sin necesidad de radar directo.
+  Esta versión logra un **MAE de 3.60 km/h sobre 387 vehículos** sin necesidad de radar directo (ver Resultados).
 
 - `patentes/`  
   Módulo completo de **detección y lectura de patentes**:

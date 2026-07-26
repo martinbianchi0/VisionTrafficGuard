@@ -24,3 +24,9 @@ AnyCalib/
 vtg_env/
 speed/video_annotated.mp4
 speed/vehicle_tracks_yolo.csv
+
+# Artefactos generados y de sistema
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.DS_Store
